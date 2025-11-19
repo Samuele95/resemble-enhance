@@ -11,10 +11,10 @@ from .inference import denoise, enhance
 
 
 @torch.inference_mode()
-def main():
+def main(in_file: str, out_file: str, device: str):
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("in_dir", type=Path, help="Path to input audio folder")
-    parser.add_argument("out_dir", type=Path, help="Output folder")
+    #parser.add_argument("in_file", type=Path, help="Path to input file")
+    #parser.add_argument("out_file", type=Path, help="Output file")
     parser.add_argument(
         "--run_dir",
         type=Path,
@@ -27,12 +27,12 @@ def main():
         default=".wav",
         help="Audio file suffix",
     )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cuda",
-        help="Device to use for computation, recommended to use CUDA",
-    )
+    #parser.add_argument(
+    #    "--device",
+    #    type=str,
+    #    default="cuda",
+    #    help="Device to use for computation, recommended to use CUDA",
+    #)
     parser.add_argument(
         "--denoise_only",
         action="store_true",
@@ -71,32 +71,30 @@ def main():
 
     args = parser.parse_args()
 
-    device = args.device
-
-    if device == "cuda" and not torch.cuda.is_available():
-        print("CUDA is not available but --device is set to cuda, using CPU instead")
-        device = "cpu"
-
     start_time = time.perf_counter()
 
     run_dir = args.run_dir
 
-    paths = sorted(args.in_dir.glob(f"**/*{args.suffix}"))
+    #paths = sorted(args.in_dir.glob(f"**/*{args.suffix}"))
+    out_path = Path(out_file)
+    in_path = Path(in_file)
+    paths = [in_path]
 
-    if args.parallel_mode:
-        random.shuffle(paths)
+    #if args.parallel_mode:
+    #    random.shuffle(paths)
 
-    if len(paths) == 0:
-        print(f"No {args.suffix} files found in the following path: {args.in_dir}")
-        return
+    #if len(paths) == 0:
+    #    print(f"No {args.suffix} files found in the following path: {args.in_dir}")
+    #    return
 
     pbar = tqdm(paths)
 
     for path in pbar:
-        out_path = args.out_dir / path.relative_to(args.in_dir)
-        if args.parallel_mode and out_path.exists():
-            continue
-        pbar.set_description(f"Processing {out_path}")
+    #out_path = args.out_dir / path.relative_to(args.in_dir)
+    #if args.parallel_mode and out_path.exists():
+    #    continue
+
+        pbar.set_description(f"Processing {path}")
         dwav, sr = torchaudio.load(path)
         dwav = dwav.mean(0)
         if args.denoise_only:
@@ -117,12 +115,12 @@ def main():
                 tau=args.tau,
                 run_dir=run_dir,
             )
-        out_path.parent.mkdir(parents=True, exist_ok=True)
+        #out_path.parent.mkdir(parents=True, exist_ok=True)
         torchaudio.save(out_path, hwav[None], sr)
 
     # Cool emoji effect saying the job is done
     elapsed_time = time.perf_counter() - start_time
-    print(f"🌟 Enhancement done! {len(paths)} files processed in {elapsed_time:.2f}s")
+    print(f"🌟 Enhancement done! {out_path} files processed in {elapsed_time:.2f}s")
 
 
 if __name__ == "__main__":
